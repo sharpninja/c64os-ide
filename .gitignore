@@ -1,0 +1,71 @@
+# VICE Source Code - Managed via SVN
+# Include patches and build scripts but exclude source
+third_party/vice/vice/src/
+third_party/vice/vice/build/
+third_party/vice/vice/doc/
+third_party/vice/vice/*.o
+third_party/vice/vice/*.a
+third_party/vice/vice/*.so
+third_party/vice/vice/*.dll
+third_party/vice/vice/*.exe
+third_party/vice/vice/Makefile
+third_party/vice/vice/configure
+third_party/vice/vice/config.status
+third_party/vice/vice/config.log
+
+# Build Artifacts
+artifacts/
+bin/
+obj/
+build/vice/vice/
+
+# IDE build output
+src/**/bin/
+src/**/obj/
+src/**/.vs/
+
+# Visual Studio / VS Code
+.vscode/
+*.sln.user
+*.user
+.vs/
+
+# C# / .NET build output
+**/bin/
+**/obj/
+*.dll
+*.exe
+*.pdb
+*.nuget.props
+*.nuget.targets
+
+# Build logs
+*.log
+build.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# VICE compilation artifacts only (source code is excluded above)
+third_party/vice/vice/*.o
+third_party/vice/vice/src/**/*.o
+third_party/vice/vice/src/**/*.lo
+third_party/vice/vice/src/**/.deps/
+
+# Keep patch files and build scripts
+!third_party/vice/vice/build/
+!build/vice/
+
+# Keep only necessary VICE files
+!third_party/vice/svn-instructions.txt
+
+# OS specific
+.DS_Store
+Thumbs.db
+*.swp
+*~
