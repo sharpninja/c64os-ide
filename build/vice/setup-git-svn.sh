@@ -63,7 +63,7 @@ Options:
 
 Description:
     This script sets up a git mirror of the VICE emulator source code
-    from the official GitHub VICE Team mirror and applies necessary 
+    from the official GitHub VICE Team mirror and applies necessary
     patches for C64OS IDE builds.
 
     If the mirror already exists, it will be updated using 'git fetch'.
@@ -135,17 +135,17 @@ fi
 if [ ! -d "$VICE_GIT_DIR" ]; then
     log_info "Initializing git mirror from: $SVN_REPO"
     log_info "This may take a few minutes on first run..."
-    
+
     cd "$PROJECT_ROOT/third_party"
-    
+
     # Clone from GitHub mirror
     START_TIME=$(date +%s)
-    
+
     if git clone -q "$SVN_REPO" vice; then
-        
+
         END_TIME=$(date +%s)
         DURATION=$((END_TIME - START_TIME))
-        
+
         log_success "Git mirror cloned successfully"
         log_info "Initial clone took: $((DURATION / 60)) minutes $((DURATION % 60)) seconds"
     else
@@ -155,15 +155,15 @@ if [ ! -d "$VICE_GIT_DIR" ]; then
 else
     log_info "Git mirror already exists at: $VICE_GIT_DIR"
     log_info "Updating from remote..."
-    
+
     cd "$VICE_GIT_DIR"
-    
+
     START_TIME=$(date +%s)
-    
+
     if git fetch -q; then
         END_TIME=$(date +%s)
         DURATION=$((END_TIME - START_TIME))
-        
+
         log_success "Git mirror updated"
         log_info "Fetch took: $DURATION seconds"
     else
