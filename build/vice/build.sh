@@ -37,53 +37,75 @@ fi
 
 mkdir -p "$DEST_DIR"
 
+# Use out-of-source build to avoid mixing Windows and Linux object files
+BUILD_DIR="$SOURCE_DIR/build/linux-x64"
+mkdir -p "$BUILD_DIR"
+
+echo "Out-of-source build directory: $BUILD_DIR"
+
 pushd "$SOURCE_DIR"
 
 echo "Listing contents of $PWD before build:"
-ls -lA
+ls -lA | head -20
 
 # Prefer autotools if present
 if [ -f ./configure ] || [ -f ./autogen.sh ]; then
-	       echo "Autotools build detected."
-	       if [ -f ./autogen.sh ]; then
-		       echo "Running autogen.sh..."
-		       ./autogen.sh || { echo "autogen.sh failed"; exit 2; }
-	       fi
-		       # Detect build type using config.guess if available, else fallback
-		       BUILD_TYPE=""
-		       if [ -x ./config.guess ]; then
-			       BUILD_TYPE=$(./config.guess 2>/dev/null || true)
-			       echo "Detected build type from config.guess: '$BUILD_TYPE'"
-		       fi
-		       if [ -z "$BUILD_TYPE" ]; then
-			       BUILD_TYPE="x86_64-pc-linux-gnu"
-			       echo "Falling back to hardcoded build type: '$BUILD_TYPE'"
-		       fi
-		       echo "Running ./configure with: ./configure --prefix=/usr --build=\"$BUILD_TYPE\""
-		       ./configure --prefix=/usr --build="$BUILD_TYPE" || { echo "configure failed"; exit 3; }
-	echo "Running make..."
+	echo "Autotools build detected."
+
+	# Clean up any previous Windows build configuration in source tree
+	echo "Cleaning source directory to avoid configuration conflicts..."
+	if [ -f Makefile ]; then
+		make distclean 2>/dev/null || true
+	fi
+
+	if [ -f ./autogen.sh ]; then
+		echo "Running autogen.sh..."
+		./autogen.sh || { echo "autogen.sh failed"; exit 2; }
+	fi
+
+	# Detect build type using config.guess if available, else fallback
+	BUILD_TYPE=""
+	if [ -x ./config.guess ]; then
+		BUILD_TYPE=$(./config.guess 2>/dev/null || true)
+		echo "Detected build type from config.guess: '$BUILD_TYPE'"
+	fi
+	if [ -z "$BUILD_TYPE" ]; then
+		BUILD_TYPE="x86_64-pc-linux-gnu"
+		echo "Falling back to hardcoded build type: '$BUILD_TYPE'"
+	fi
+
+	# Change to build directory for out-of-source build
+	cd "$BUILD_DIR"
+	SOURCE_ROOT="$(pwd)/../.."
+	echo "Configuring from out-of-source build directory..."
+	echo "Running: $SOURCE_ROOT/configure --prefix=/usr --build=\"$BUILD_TYPE\" --enable-gtk3ui --with-pulse"
+	"$SOURCE_ROOT/configure" --prefix=/usr --build="$BUILD_TYPE" --enable-gtk3ui --with-pulse || { echo "configure failed"; exit 3; }
+
+	echo "Running make from build directory..."
 	make -j"$JOBS" || { echo "make failed"; exit 4; }
+
 	if make -q install 2>/dev/null; then
 		echo "Running make install..."
-		make install DESTDIR="$(pwd)/../$DEST_DIR" || { echo "make install failed"; exit 5; }
+		make install DESTDIR="$DEST_DIR" || { echo "make install failed"; exit 5; }
 	else
 		echo "No install target, copying VICE binaries manually..."
-		mkdir -p "$(pwd)/../$DEST_DIR"
-		find ./src -maxdepth 1 -type f -executable -exec cp {} "$(pwd)/../$DEST_DIR" \;
+		mkdir -p "$DEST_DIR"
+		find ./src -maxdepth 1 -type f -executable -exec cp {} "$DEST_DIR" \; 2>/dev/null || true
 	fi
 else
 	echo "CMake build fallback."
-	mkdir -p build && cd build
+	cd "$BUILD_DIR"
+	SOURCE_ROOT="$(pwd)/../.."
 	echo "Running cmake..."
-	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr .. || { echo "cmake failed"; exit 6; }
+	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr "$SOURCE_ROOT" || { echo "cmake failed"; exit 6; }
 	echo "Running make (cmake)..."
 	make -j"$JOBS" || { echo "make (cmake) failed"; exit 7; }
 	echo "Running make install (cmake)..."
-	make install DESTDIR="$(pwd)/../../$DEST_DIR" || { echo "make install (cmake) failed"; exit 8; }
+	make install DESTDIR="$DEST_DIR" || { echo "make install (cmake) failed"; exit 8; }
 fi
 
 echo "Listing contents of $DEST_DIR after build:"
-ls -lA "$DEST_DIR"
+ls -lA "$DEST_DIR" 2>/dev/null | head -20
 
 popd
 

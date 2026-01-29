@@ -19,6 +19,22 @@ bin/
 obj/
 build/vice/vice/
 
+# Transitory build artifacts
+.nuke/temp/
+.nuke/build/
+**/.deps/
+**/*.Po
+**/*.Plo
+**/*.tlog
+**/*.lastbuildstate
+**/*.FileListAbsolute.txt
+**/*.cache
+**/*.d
+**/*.obj
+**/*.ilk
+**/*.idb
+build-output*.txt
+
 # IDE build output
 src/**/bin/
 src/**/obj/
@@ -41,6 +57,7 @@ src/**/.vs/
 
 # Build logs
 *.log
+*.log.*
 build.log
 
 # Temporary files
