@@ -2,20 +2,44 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+  checks: write
 
 jobs:
   build-windows:
     runs-on: windows-latest
+    name: Build Windows (NUKE + MinGW64 + WSL2)
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '9.0.x'
-      - name: Install MSYS2 and required packages (MinGW64)
+
+      - name: Enable WSL2
+        shell: powershell
+        run: |
+          # Check if WSL2 is already installed
+          $wslCheck = wsl --list --verbose 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Installing WSL2..."
+            wsl --install --no-distribution
+            # Note: Full WSL2 setup may require user interaction in some CI environments
+          } else {
+            Write-Host "WSL2 is already available"
+            wsl --list --verbose
+          }
+
+      - name: Install MSYS2 and MinGW64 toolchain
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -33,20 +57,117 @@ jobs:
             mingw-w64-x86_64-libpng
             mingw-w64-x86_64-libjpeg-turbo
             mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-gettext
 
-      - name: Build & Package (Windows)
+      - name: Verify NUKE build script
+        shell: powershell
         run: |
-          dotnet build build/BuildTool/BuildTool.csproj -c Release
-          dotnet run --project build/BuildTool/BuildTool.csproj -- pack-windows
+          Write-Host "Verifying build environment..."
+          dotnet --version
+          if (Test-Path ".\build.cmd") {
+            Write-Host "NUKE build script found"
+          } else {
+            Write-Error "NUKE build script not found"
+            exit 1
+          }
+
+      - name: Build VICE for Windows (NUKE)
+        shell: powershell
+        run: |
+          .\build.cmd BuildVice --Platform Windows 2>&1 | Tee-Object -FilePath build-windows.log
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Windows VICE build failed"
+            exit 1
+          }
+
+      - name: Verify build artifacts
+        shell: powershell
+        run: |
+          Write-Host "Checking for Windows VICE artifacts..."
+          if (Test-Path "artifacts/vice/win-x64") {
+            Get-ChildItem -Path "artifacts/vice/win-x64" -Recurse | Select-Object -First 20 | Format-Table
+            Write-Host "✓ Windows artifacts generated successfully"
+          } else {
+            Write-Warning "Windows artifacts directory not found"
+          }
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-build-logs
+          path: |
+            build-windows.log
+            build-output*.txt
+          retention-days: 7
+
+      - name: Report build status
+        if: success()
+        run: |
+          Write-Host "✓ Windows build completed successfully"
+          Write-Host "Artifacts: artifacts/vice/win-x64"
 
   build-linux:
     runs-on: ubuntu-latest
+    name: Build Linux (NUKE + Autotools)
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '9.0.x'
-      - name: Placeholder - Run NUKE BuildVice (linux-x64)
+
+      - name: Install Linux build dependencies
         run: |
-          echo "CI step: invoke nuke BuildVice --target=linux-x64"
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            libsdl2-dev \
+            libsdl2-image-dev \
+            libsdl2-mixer-dev \
+            libpng-dev \
+            libjpeg-dev \
+            zlib1g-dev \
+            gettext
+
+      - name: Build VICE for Linux (NUKE)
+        run: |
+          chmod +x ./build.sh
+          ./build.sh BuildVice --Platform Linux 2>&1 | tee build-linux.log
+          if [ $? -ne 0 ]; then
+            echo "Linux VICE build failed"
+            exit 1
+          fi
+
+      - name: Verify build artifacts
+        run: |
+          echo "Checking for Linux VICE artifacts..."
+          if [ -d "artifacts/vice/linux-x64" ]; then
+            ls -la artifacts/vice/linux-x64 | head -20
+            echo "✓ Linux artifacts generated successfully"
+          else
+            echo "⚠ Linux artifacts directory not found"
+          fi
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-build-logs
+          path: |
+            build-linux.log
+            build-output*.txt
+          retention-days: 7
+
+      - name: Report build status
+        if: success()
+        run: |
+          echo "✓ Linux build completed successfully"
+          echo "Artifacts: artifacts/vice/linux-x64"
