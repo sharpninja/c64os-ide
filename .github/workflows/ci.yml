@@ -5,15 +5,26 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Build platform'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - windows
+          - linux
 
 permissions:
   contents: read
   checks: write
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
-    name: Build Windows (NUKE + MinGW64 + WSL2)
+    name: Build C64OS IDE (Windows + Linux)
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,9 +46,9 @@ jobs:
           path: |
             ~/.nuget/packages
             ~/.nuget/cache
-          key: nuget-windows-${{ hashFiles('global.json') }}
+          key: nuget-${{ hashFiles('global.json') }}
           restore-keys: |
-            nuget-windows-
+            nuget-
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
