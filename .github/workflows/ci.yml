@@ -50,87 +50,15 @@ jobs:
           restore-keys: |
             nuget-
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Cache NUKE build directory
+      - name: Cache Windows build artifacts
         uses: actions/cache@v3
         with:
-          path: .nuke
-          key: nuke-build-${{ runner.os }}-${{ hashFiles('build/**/*.cs', 'global.json') }}
+          path: artifacts/vice/win-x64
+          key: vice-artifacts-windows-${{ github.sha }}
           restore-keys: |
-            nuke-build-${{ runner.os }}-
+            vice-artifacts-windows-
 
-      - name: Cache MinGW64 packages
-        uses: actions/cache@v3
-        id: cache-mingw64
-        with:
-          path: |
-            C:\msys64\mingw64
-            C:\msys64\var\cache\pacman
-          key: mingw64-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
-          restore-keys: |
-            mingw64-${{ runner.os }}-
-
-      - name: Cache VICE build directory
-        uses: actions/cache@v3
-        with:
-          path: third_party/vice/vice/build
-          key: vice-build-windows-${{ runner.os }}-${{ hashFiles('third_party/vice/**', '.github/workflows/ci.yml') }}
-          restore-keys: |
-            vice-build-windows-${{ runner.os }}-
-
-      - name: Enable WSL2
-        shell: powershell
-        continue-on-error: true
-        run: |
-          # Check if WSL2 is already installed (optional for CI)
-          try {
-            $wslCheck = wsl --list --verbose 2>$null
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "✓ WSL2 is available"
-              wsl --list --verbose
-            }
-          } catch {
-            Write-Host "⚠ WSL2 not available (non-critical for CI builds)"
-          }
-
-      - name: Install MSYS2 and MinGW64 toolchain
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          cache: true
-          install: |
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-autoconf
-            mingw-w64-x86_64-automake
-            mingw-w64-x86_64-libtool
-            mingw-w64-x86_64-pkg-config
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-SDL2
-            mingw-w64-x86_64-SDL2_image
-            mingw-w64-x86_64-SDL2_mixer
-            mingw-w64-x86_64-libpng
-            mingw-w64-x86_64-libjpeg-turbo
-            mingw-w64-x86_64-zlib
-            mingw-w64-x86_64-gettext
-
-      - name: Verify NUKE build script
-        shell: powershell
-        run: |
-          Write-Host "Verifying build environment..."
-          dotnet --version
-          if (Test-Path ".\build.cmd") {
-            Write-Host "NUKE build script found"
-          } else {
-            Write-Error "NUKE build script not found"
-            exit 1
-          }
-
-      - name: Build VICE for Windows (NUKE)
+      - name: Build Windows (via build.cmd)
         shell: powershell
         run: |
           .\build.cmd BuildVice --Platform Windows 2>&1 | Tee-Object -FilePath build-windows.log
@@ -139,7 +67,7 @@ jobs:
             exit 1
           }
 
-      - name: Verify build artifacts
+      - name: Verify Windows artifacts
         shell: powershell
         run: |
           Write-Host "Checking for Windows VICE artifacts..."
@@ -150,7 +78,7 @@ jobs:
             Write-Warning "Windows artifacts directory not found"
           }
 
-      - name: Upload build logs
+      - name: Upload Windows build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
