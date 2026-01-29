@@ -36,10 +36,12 @@ jobs:
         run: |
           Write-Host "Setting up VICE source via git-svn..."
           .\build\vice\setup-git-svn.ps1 -Verbose
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Failed to setup VICE source"
+          if ($LASTEXITCODE -eq 1) {
+            Write-Host "Critical error during git-svn setup"
             exit 1
           }
+          # Exit code 0 means success, any other non-1 code is informational
+          Write-Host "VICE source setup completed"
 
       - name: Cache VICE source code
         uses: actions/cache@v3

@@ -96,10 +96,44 @@ try {
 
 # Check if git-svn perl module is available (Windows may require manual setup)
 Write-Info "Checking for git-svn support..."
-$gitSvnTest = & git svn --version 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Warning "git-svn may not be fully configured on this system"
-    Write-Warning "On Windows, you may need to install Git with perl support"
+$gitSvnAvailable = $true
+try {
+    $gitSvnTest = & git svn --version 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $gitSvnAvailable = $false
+    }
+} catch {
+    $gitSvnAvailable = $false
+}
+
+if (-not $gitSvnAvailable) {
+    Write-Warning "git-svn is NOT available on this system"
+    Write-Info "Checking for cached VICE source..."
+    
+    if (Test-Path $viceDir) {
+        Write-Success "Using cached VICE source at: $viceDir"
+        Write-Info "Applying patches to cached source..."
+        
+        $patchScript = Join-Path $patchDir "apply_vice_patches.ps1"
+        if (Test-Path $patchScript) {
+            try {
+                & $patchScript -Verbose
+                Write-Success "Patches applied successfully to cached source"
+                Write-Success "VICE setup complete (using cache)"
+                exit 0
+            } catch {
+                Write-Error "Failed to apply patches: $_"
+                exit 1
+            }
+        }
+    } else {
+        Write-Error "git-svn is not available and no cached VICE source found"
+        Write-Error "On Windows, you must install Git with Perl support:"
+        Write-Error "  1. Reinstall Git for Windows"
+        Write-Error "  2. Select 'Perl' during installation (not default)"
+        Write-Error "  3. Or use: choco install git -params '/GitOnlyOnPath /NoAutoCrlf /Prn' (Chocolatey)"
+        exit 1
+    }
 }
 
 # Create third_party directory if needed

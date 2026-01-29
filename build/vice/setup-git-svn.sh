@@ -117,10 +117,35 @@ log_info "Found: $GIT_VERSION"
 
 # Check if git-svn is available
 if ! git svn --version &> /dev/null; then
-    log_error "git-svn is not installed. On some systems you may need to install git-svn package."
-    log_error "Ubuntu/Debian: sudo apt-get install git-svn"
-    log_error "macOS: brew install git-svn"
-    exit 1
+    log_warning "git-svn is NOT available on this system"
+    log_info "Checking for cached VICE source..."
+    
+    if [ -d "$VICE_DIR" ]; then
+        log_success "Using cached VICE source at: $VICE_DIR"
+        log_info "Applying patches to cached source..."
+        
+        PATCH_SCRIPT="$PATCH_DIR/apply_vice_patches.sh"
+        if [ -f "$PATCH_SCRIPT" ]; then
+            if chmod +x "$PATCH_SCRIPT" && "$PATCH_SCRIPT" $([ "$VERBOSE" -eq 1 ] && echo "--verbose"); then
+                log_success "Patches applied successfully to cached source"
+                log_success "VICE setup complete (using cache)"
+                exit 0
+            else
+                log_error "Failed to apply patches to cached source"
+                exit 1
+            fi
+        else
+            log_error "Patch script not found: $PATCH_SCRIPT"
+            exit 1
+        fi
+    else
+        log_error "git-svn is not available and no cached VICE source found"
+        log_error "Install git-svn using your package manager:"
+        log_error "  Ubuntu/Debian: sudo apt-get install git-svn"
+        log_error "  macOS: brew install git-svn"
+        log_error "  Fedora: sudo dnf install perl-Git-SVN"
+        exit 1
+    fi
 fi
 
 # Create third_party directory if needed
