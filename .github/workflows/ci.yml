@@ -32,10 +32,12 @@ jobs:
       - name: Cache .NET NuGet packages
         uses: actions/cache@v3
         with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/Directory.Packages.props') }}
+          path: |
+            ~/.nuget/packages
+            ~/.nuget/cache
+          key: nuget-windows-${{ hashFiles('global.json') }}
           restore-keys: |
-            nuget-${{ runner.os }}-
+            nuget-windows-
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
@@ -71,16 +73,17 @@ jobs:
 
       - name: Enable WSL2
         shell: powershell
+        continue-on-error: true
         run: |
-          # Check if WSL2 is already installed
-          $wslCheck = wsl --list --verbose 2>$null
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "Installing WSL2..."
-            wsl --install --no-distribution
-            # Note: Full WSL2 setup may require user interaction in some CI environments
-          } else {
-            Write-Host "WSL2 is already available"
-            wsl --list --verbose
+          # Check if WSL2 is already installed (optional for CI)
+          try {
+            $wslCheck = wsl --list --verbose 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✓ WSL2 is available"
+              wsl --list --verbose
+            }
+          } catch {
+            Write-Host "⚠ WSL2 not available (non-critical for CI builds)"
           }
 
       - name: Install MSYS2 and MinGW64 toolchain
