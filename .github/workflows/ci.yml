@@ -88,94 +88,22 @@ jobs:
             build-output*.txt
           retention-days: 7
 
-      - name: Report build status
+      - name: Report Windows build status
         if: success()
         run: |
           Write-Host "✓ Windows build completed successfully"
           Write-Host "Artifacts: artifacts/vice/win-x64"
 
-      - name: Cache Windows build artifacts
-        if: success()
+      - name: Cache Linux build artifacts
         uses: actions/cache@v3
         with:
-          path: artifacts/vice/win-x64
-          key: vice-artifacts-windows-${{ github.sha }}
+          path: artifacts/vice/linux-x64
+          key: vice-artifacts-linux-${{ github.sha }}
           restore-keys: |
-            vice-artifacts-windows-
+            vice-artifacts-linux-
 
-  build-linux:
-    runs-on: ubuntu-latest
-    name: Build Linux (NUKE + Autotools)
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Cache VICE source code
-        uses: actions/cache@v3
-        id: cache-vice-source
-        with:
-          path: third_party/vice
-          key: vice-source-${{ hashFiles('.gitmodules', '.github/workflows/ci.yml') }}
-          restore-keys: |
-            vice-source-
-
-      - name: Cache .NET NuGet packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/Directory.Packages.props') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Cache NUKE build directory
-        uses: actions/cache@v3
-        with:
-          path: .nuke
-          key: nuke-build-${{ runner.os }}-${{ hashFiles('build/**/*.cs', 'global.json') }}
-          restore-keys: |
-            nuke-build-${{ runner.os }}-
-
-      - name: Cache Linux build dependencies
-        uses: actions/cache@v3
-        id: cache-linux-deps
-        with:
-          path: /usr/local/apt-cache
-          key: apt-cache-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
-          restore-keys: |
-            apt-cache-${{ runner.os }}-
-
-      - name: Cache VICE build directory
-        uses: actions/cache@v3
-        with:
-          path: third_party/vice/vice/build
-          key: vice-build-linux-${{ runner.os }}-${{ hashFiles('third_party/vice/**', '.github/workflows/ci.yml') }}
-          restore-keys: |
-            vice-build-linux-${{ runner.os }}-
-
-      - name: Install Linux build dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            libsdl2-dev \
-            libsdl2-image-dev \
-            libsdl2-mixer-dev \
-            libpng-dev \
-            libjpeg-dev \
-            zlib1g-dev \
-            gettext
-
-      - name: Build VICE for Linux (NUKE)
+      - name: Build Linux (via build.sh)
+        shell: bash
         run: |
           chmod +x ./build.sh
           ./build.sh BuildVice --Platform Linux 2>&1 | tee build-linux.log
@@ -184,7 +112,8 @@ jobs:
             exit 1
           fi
 
-      - name: Verify build artifacts
+      - name: Verify Linux artifacts
+        shell: bash
         run: |
           echo "Checking for Linux VICE artifacts..."
           if [ -d "artifacts/vice/linux-x64" ]; then
@@ -198,23 +127,15 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: linux-build-logs
+          name: build-logs
           path: |
-            build-linux.log
+            build-*.log
             build-output*.txt
           retention-days: 7
 
-      - name: Report build status
+      - name: Report final status
         if: success()
         run: |
-          echo "✓ Linux build completed successfully"
-          echo "Artifacts: artifacts/vice/linux-x64"
-
-      - name: Cache Linux build artifacts
-        if: success()
-        uses: actions/cache@v3
-        with:
-          path: artifacts/vice/linux-x64
-          key: vice-artifacts-linux-${{ github.sha }}
-          restore-keys: |
-            vice-artifacts-linux-
+          Write-Host "✓ All builds completed successfully"
+          Write-Host "Windows artifacts: artifacts/vice/win-x64"
+          Write-Host "Linux artifacts: artifacts/vice/linux-x64"
