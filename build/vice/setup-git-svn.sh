@@ -142,22 +142,22 @@ fi
 if [ ! -d "$VICE_GIT_DIR" ]; then
     log_info "Initializing git-svn mirror from: $SVN_REPO"
     log_info "This may take several minutes on first run..."
-    
+
     cd "$PROJECT_ROOT/third_party"
-    
+
     # Clone from SVN with git-svn
     # Note: Only pull trunk to avoid excessive download
     START_TIME=$(date +%s)
-    
+
     if git svn clone -s \
         -A "$GIT_SVN_AUTHOR" \
         -q \
         "$SVN_REPO" \
         vice; then
-        
+
         END_TIME=$(date +%s)
         DURATION=$((END_TIME - START_TIME))
-        
+
         log_success "Git-SVN mirror initialized successfully"
         log_info "Initial clone took: $((DURATION / 60)) minutes $((DURATION % 60)) seconds"
     else
@@ -167,15 +167,15 @@ if [ ! -d "$VICE_GIT_DIR" ]; then
 else
     log_info "Git-SVN mirror already exists at: $VICE_GIT_DIR"
     log_info "Updating from SVN..."
-    
+
     cd "$VICE_GIT_DIR"
-    
+
     START_TIME=$(date +%s)
-    
+
     if git svn fetch -q; then
         END_TIME=$(date +%s)
         DURATION=$((END_TIME - START_TIME))
-        
+
         log_success "Git-SVN update completed"
         log_info "Fetch took: $DURATION seconds"
     else

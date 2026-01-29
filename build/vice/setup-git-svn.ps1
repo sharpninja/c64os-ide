@@ -121,7 +121,7 @@ if ($Clean) {
 if (-not (Test-Path $viceGitDir)) {
     Write-Info "Initializing git-svn mirror from: $svnRepo"
     Write-Info "This may take several minutes on first run..."
-    
+
     Push-Location $projectRoot\third_party
     try {
         # Clone from SVN with git-svn
@@ -132,7 +132,7 @@ if (-not (Test-Path $viceGitDir)) {
             -q `
             $svnRepo `
             vice
-        
+
         $duration = (Get-Date) - $startTime
         Write-Success "Git-SVN mirror initialized successfully"
         Write-Info "Initial clone took: $($duration.TotalMinutes) minutes"
@@ -145,12 +145,12 @@ if (-not (Test-Path $viceGitDir)) {
 } else {
     Write-Info "Git-SVN mirror already exists at: $viceGitDir"
     Write-Info "Updating from SVN..."
-    
+
     Push-Location $viceGitDir
     try {
         $startTime = Get-Date
         git svn fetch -q
-        
+
         $duration = (Get-Date) - $startTime
         Write-Success "Git-SVN update completed"
         Write-Info "Fetch took: $($duration.TotalSeconds) seconds"
