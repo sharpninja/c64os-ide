@@ -127,25 +127,32 @@ log_info "Found: $GIT_VERSION"
 # Handle git submodule if applicable
 if [ "$IS_SUBMODULE" -eq 1 ]; then
     log_info "VICE is configured as a git submodule"
-    log_info "Initializing submodule from parent repository..."
-
-    cd "$PROJECT_ROOT"
-
-    if git submodule status third_party/vice 2>/dev/null | grep -q "^-"; then
-        log_info "Submodule not initialized, initializing now..."
-        if git submodule update --init --recursive third_party/vice; then
-            log_success "Submodule initialized successfully"
-        else
-            log_error "Failed to initialize submodule"
-            exit 1
-        fi
+    
+    # Check if submodule is already populated
+    if [ -d "$VICE_DIR" ] && [ "$(ls -A "$VICE_DIR" 2>/dev/null | wc -l)" -gt 0 ]; then
+        log_info "Submodule already populated (likely by GitHub Actions checkout)"
+        log_success "VICE submodule content already available"
     else
-        log_info "Submodule already initialized, updating..."
-        if git submodule update --recursive third_party/vice; then
-            log_success "Submodule updated successfully"
+        log_info "Submodule not populated, initializing now..."
+        
+        cd "$PROJECT_ROOT"
+
+        if git submodule status third_party/vice 2>/dev/null | grep -q "^-"; then
+            log_info "Submodule not initialized, initializing now..."
+            if git submodule update --init --recursive third_party/vice; then
+                log_success "Submodule initialized successfully"
+            else
+                log_error "Failed to initialize submodule (exit code: $?)"
+                exit 1
+            fi
         else
-            log_error "Failed to update submodule"
-            exit 1
+            log_info "Submodule already initialized, updating..."
+            if git submodule update --recursive third_party/vice; then
+                log_success "Submodule updated successfully"
+            else
+                log_error "Failed to update submodule (exit code: $?)"
+                exit 1
+            fi
         fi
     fi
 

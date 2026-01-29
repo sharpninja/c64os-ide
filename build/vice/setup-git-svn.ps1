@@ -93,24 +93,43 @@ Examples:
 # Handle git submodule if applicable
 if ($isSubmodule) {
     Write-Info "VICE is configured as a git submodule"
-    Write-Info "Initializing submodule from parent repository..."
+    
+    # Check if submodule is already populated
+    if ((Test-Path $viceDir) -and (Get-ChildItem $viceDir -ErrorAction SilentlyContinue).Count -gt 0) {
+        Write-Info "Submodule already populated (likely by GitHub Actions checkout)"
+        Write-Success "VICE submodule content already available"
+    } else {
+        Write-Info "Submodule not populated, initializing now..."
+        
+        Push-Location $projectRoot
+        try {
+            $ErrorActionPreference = "Continue"
+            $status = git submodule status third_party/vice 2>&1
+            $ErrorActionPreference = "Stop"
+            
+            if ($status -match "^-") {
+                Write-Info "Submodule not initialized, initializing now..."
+                git submodule update --init --recursive third_party/vice
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Error "Failed to initialize submodule (exit code: $LASTEXITCODE)"
+                    exit 1
+                }
+            } else {
+                Write-Info "Submodule already initialized, updating..."
+                git submodule update --recursive third_party/vice
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Error "Failed to update submodule (exit code: $LASTEXITCODE)"
+                    exit 1
+                }
+            }
 
-    Push-Location $projectRoot
-    try {
-        if (git submodule status third_party/vice | Select-String -Pattern "^-" -Quiet) {
-            Write-Info "Submodule not initialized, initializing now..."
-            git submodule update --init --recursive third_party/vice
-        } else {
-            Write-Info "Submodule already initialized, updating..."
-            git submodule update --recursive third_party/vice
+            Write-Success "Submodule initialized/updated successfully"
+        } catch {
+            Write-Error "Failed to manage submodule: $_"
+            exit 1
+        } finally {
+            Pop-Location
         }
-
-        Write-Success "Submodule initialized/updated successfully"
-    } catch {
-        Write-Error "Failed to initialize submodule: $_"
-        exit 1
-    } finally {
-        Pop-Location
     }
 
     # Apply patches
