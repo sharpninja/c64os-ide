@@ -18,6 +18,14 @@ PATCH_DIR="$SCRIPT_DIR"
 SVN_REPO="https://github.com/VICE-Team/svn-mirror.git"
 GIT_SVN_AUTHOR="vice-emu=VICE Emulator Team <info@vice-emu.org>"
 
+# Detect if running as git submodule
+IS_SUBMODULE=0
+if [ -f "$VICE_GIT_DIR/.git" ]; then
+    if grep -q "^gitdir:" "$VICE_GIT_DIR/.git" 2>/dev/null; then
+        IS_SUBMODULE=1
+    fi
+fi
+
 # Options
 CLEAN=0
 VERBOSE=0
@@ -115,6 +123,51 @@ fi
 
 GIT_VERSION=$(git --version)
 log_info "Found: $GIT_VERSION"
+
+# Handle git submodule if applicable
+if [ "$IS_SUBMODULE" -eq 1 ]; then
+    log_info "VICE is configured as a git submodule"
+    log_info "Initializing submodule from parent repository..."
+
+    cd "$PROJECT_ROOT"
+
+    if git submodule status third_party/vice 2>/dev/null | grep -q "^-"; then
+        log_info "Submodule not initialized, initializing now..."
+        if git submodule update --init --recursive third_party/vice; then
+            log_success "Submodule initialized successfully"
+        else
+            log_error "Failed to initialize submodule"
+            exit 1
+        fi
+    else
+        log_info "Submodule already initialized, updating..."
+        if git submodule update --recursive third_party/vice; then
+            log_success "Submodule updated successfully"
+        else
+            log_error "Failed to update submodule"
+            exit 1
+        fi
+    fi
+
+    # Apply patches
+    log_info "Applying VICE patches..."
+    PATCH_SCRIPT="$PATCH_DIR/apply_vice_patches.sh"
+    if [ -f "$PATCH_SCRIPT" ]; then
+        if chmod +x "$PATCH_SCRIPT" && "$PATCH_SCRIPT" $([ "$VERBOSE" -eq 1 ] && echo "--verbose"); then
+            log_success "Patches applied successfully"
+        else
+            log_error "Failed to apply patches"
+            exit 1
+        fi
+    fi
+
+    log_success "VICE submodule setup complete!"
+    log_info "Source code: $VICE_DIR"
+    log_info "Next steps: Run the build script"
+    log_info "  Windows: .\\build.cmd BuildVice --Platform Windows"
+    log_info "  Linux:   ./build.sh BuildVice --Platform Linux"
+    exit 0
+fi
 
 # Create third_party directory if needed
 if [ ! -d "$PROJECT_ROOT/third_party" ]; then

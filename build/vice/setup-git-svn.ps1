@@ -22,6 +22,15 @@ $patchDir = $scriptDir
 $svnRepo = "https://github.com/VICE-Team/svn-mirror.git"
 $gitSvnAuthor = "vice-emu=VICE Emulator Team <info@vice-emu.org>"
 
+# Detect if running as git submodule
+$isSubmodule = Test-Path (Join-Path $viceGitDir ".git")
+if (Test-Path (Join-Path $viceGitDir ".git")) {
+    $gitDir = Get-Content (Join-Path $viceGitDir ".git") -ErrorAction SilentlyContinue
+    if ($gitDir -match "^gitdir:") {
+        $isSubmodule = $true
+    }
+}
+
 # Helper functions
 function Write-Info {
     param([string]$Message)
@@ -81,7 +90,49 @@ Examples:
     exit 0
 }
 
-if ($Help) { Show-Help }
+# Handle git submodule if applicable
+if ($isSubmodule) {
+    Write-Info "VICE is configured as a git submodule"
+    Write-Info "Initializing submodule from parent repository..."
+
+    Push-Location $projectRoot
+    try {
+        if (git submodule status third_party/vice | Select-String -Pattern "^-" -Quiet) {
+            Write-Info "Submodule not initialized, initializing now..."
+            git submodule update --init --recursive third_party/vice
+        } else {
+            Write-Info "Submodule already initialized, updating..."
+            git submodule update --recursive third_party/vice
+        }
+
+        Write-Success "Submodule initialized/updated successfully"
+    } catch {
+        Write-Error "Failed to initialize submodule: $_"
+        exit 1
+    } finally {
+        Pop-Location
+    }
+
+    # Apply patches
+    Write-Info "Applying VICE patches..."
+    $patchScript = Join-Path $patchDir "apply_vice_patches.ps1"
+    if (Test-Path $patchScript) {
+        try {
+            & $patchScript -Verbose
+            Write-Success "Patches applied successfully"
+        } catch {
+            Write-Error "Failed to apply patches: $_"
+            exit 1
+        }
+    }
+
+    Write-Success "VICE submodule setup complete!"
+    Write-Info "Source code: $viceDir"
+    Write-Info "Next steps: Run the build script"
+    Write-Info "  Windows: .\build.cmd BuildVice --Platform Windows"
+    Write-Info "  Linux:   ./build.sh BuildVice --Platform Linux"
+    exit 0
+}
 
 Write-Info "VICE git-svn Setup Script"
 Write-Info "Project Root: $projectRoot"
