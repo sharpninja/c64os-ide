@@ -31,6 +31,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup git-svn and pull VICE source (Windows)
+        shell: powershell
+        run: |
+          Write-Host "Setting up VICE source via git-svn..."
+          .\build\vice\setup-git-svn.ps1 -Verbose
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to setup VICE source"
+            exit 1
+          }
+
       - name: Cache VICE source code
         uses: actions/cache@v3
         id: cache-vice-source
