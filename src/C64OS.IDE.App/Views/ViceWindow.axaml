@@ -1,0 +1,41 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:C64OS.IDE.App.ViewModels"
+        xmlns:controls="using:C64OS.IDE.App.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        x:Class="C64OS.IDE.App.Views.ViceWindow"
+        x:DataType="vm:ViceWindowViewModel"
+        Title="{Binding Title}"
+        Width="768" Height="544"
+        Background="Black"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:ViceWindowViewModel ViceExecutablePath="x64sc.exe"/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="*,Auto">
+        <!-- VICE Display -->
+        <Border Grid.Row="0"
+                BorderBrush="Gray"
+                BorderThickness="2"
+                Margin="8">
+            <controls:ViceDisplayControl x:Name="_displayControl" />
+        </Border>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="1"
+                Background="#333333"
+                BorderBrush="Gray"
+                BorderThickness="0,1,0,0"
+                Padding="8,4">
+            <TextBlock x:Name="_statusText"
+                       Foreground="White"
+                       FontFamily="Consolas, Courier New, monospace"
+                       FontSize="12"
+                       Text="{Binding StatusText}" />
+        </Border>
+    </Grid>
+</Window>

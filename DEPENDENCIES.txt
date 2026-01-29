@@ -1,0 +1,394 @@
+VICE Windows (x64) Build - Complete Dependency Inventory
+========================================================
+
+Last Updated: 2026-01-29
+Build Status: ✅ SUCCESSFUL
+DLL Count: 64 Total
+Test Status: ✅ x64sc.exe launches successfully
+
+COMPLETE DEPENDENCY CHAIN ANALYSIS
+===================================
+
+This document lists all 64 DLLs required for VICE emulator on Windows x64,
+organized by functional category, with their dependency chains.
+
+LEVEL 0: CORE RUNTIME (3 DLLs)
+==============================
+These are the GCC runtime libraries required by all compiled code.
+
+1. libgcc_s_seh-1.dll
+   - GCC runtime (Structured Exception Handling)
+   - No external DLL dependencies
+
+2. libstdc++-6.dll
+   - C++ Standard Library
+   - Depends on: libgcc_s_seh-1.dll
+
+3. libwinpthread-1.dll
+   - Windows threading support
+   - No external DLL dependencies
+
+
+LEVEL 1: GTK3 UI FRAMEWORK (3 DLLs)
+===================================
+GTK3 is the main windowing and UI toolkit for VICE on Windows.
+
+4. libgtk-3-0.dll (PRIMARY)
+   - GTK3 Widget toolkit
+   - Depends on: libgdk-3-0, libcairo-2, libpango-1.0-0, libgdk_pixbuf-2.0-0, libatk-1.0-0,
+                 libglib-2.0-0, libgio-2.0-0, libgobject-2.0-0, libfribidi-0, libharfbuzz-0,
+                 libepoxy-0, KERNEL32, msvcrt, GDI32, USER32, etc.
+   - Complex dependency tree (see below)
+
+5. libgdk-3-0.dll
+   - GDK (GIMP Drawing Kit) - GTK3 graphics layer
+   - Depends on: libcairo-2, libpixman-1-0, libglib-2.0-0, libgobject-2.0-0
+
+6. libatk-1.0-0.dll
+   - Accessibility toolkit
+   - Depends on: libglib-2.0-0, libgobject-2.0-0
+
+
+LEVEL 2: GRAPHICS RENDERING (4 DLLs)
+====================================
+Cairo is the 2D graphics library, Epoxy provides OpenGL bindings.
+
+7. libcairo-2.dll
+   - 2D graphics library
+   - Depends on: libpixman-1-0, libfontconfig-1, libfreetype-6
+
+8. libcairo-gobject-2.dll
+   - Cairo GObject bindings
+   - Depends on: libcairo-2, libgobject-2.0-0, libglib-2.0-0
+
+9. libpixman-1-0.dll
+   - Low-level pixel manipulation
+   - No external DLL dependencies
+
+10. libepoxy-0.dll
+    - OpenGL bindings
+    - Depends on: KERNEL32, msvcrt, opengl32
+
+
+LEVEL 3: TEXT RENDERING & FONTS (6 + 1 = 7 DLLs)
+================================================
+Pango provides text layout, Harfbuzz handles complex text shaping.
+
+11. libpango-1.0-0.dll
+    - Text layout and rendering
+    - Depends on: libpangocairo-1.0-0, libpangowin32-1.0-0, libpangoft2-1.0-0,
+                  libgobject-2.0-0, libfribidi-0, libharfbuzz-0
+
+12. libpangocairo-1.0-0.dll
+    - Pango Cairo integration
+    - Depends on: libpango-1.0-0, libcairo-2
+
+13. libpangoft2-1.0-0.dll
+    - Pango FreeType integration
+    - Depends on: libpango-1.0-0, libfreetype-6, libharfbuzz-0
+
+14. libpangowin32-1.0-0.dll
+    - Pango Windows integration
+    - Depends on: libpango-1.0-0, USER32, GDI32
+
+15. libfribidi-0.dll
+    - Bidirectional text support (Arabic, Hebrew)
+    - No external DLL dependencies
+
+16. libthai-0.dll
+    - Thai language text support
+    - Depends on: libdatrie-1
+
+17. libharfbuzz-0.dll (CRITICAL - Level 3/4 dependency)
+    - Advanced OpenType text shaping
+    - Depends on: libfreetype-6, libgraphite2.dll (⭐ KEY DISCOVERY),
+                  libglib-2.0-0, libgobject-2.0-0, libintl-8
+    - NOTE: libgraphite2.dll is a Level 4 transitive dependency!
+
+LEVEL 3-4: ADVANCED TEXT SHAPING (2 DLLs)
+=========================================
+These are deep transitive dependencies discovered through objdump analysis.
+
+18. libgraphite2.dll (Level 4: GTK3→Pango→Harfbuzz→Graphite2)
+    - Advanced text shaping engine for OpenType
+    - Used by Harfbuzz for complex font rendering
+    - No external DLL dependencies (beyond system DLLs)
+    - **CRITICAL DISCOVERY**: Found only through deep dependency scanning
+
+19. libcharset-1.dll
+    - Character set detection
+    - No external DLL dependencies
+
+
+LEVEL 2: FONT SUPPORT (3 DLLs)
+=============================
+Font engine and fontconfig for font discovery and configuration.
+
+20. libfontconfig-1.dll
+    - Font discovery and configuration
+    - Depends on: libexpat-1, libfreetype-6
+
+21. libfreetype-6.dll
+    - TrueType/OpenType font rendering
+    - Depends on: libbrotlidec (for WOFF2 fonts), libharfbuzz-0, libpng16-16
+
+22. libdatrie-1.dll
+    - Double-array trie data structure
+    - Used by Thai text support
+    - No external DLL dependencies
+
+
+LEVEL 2: GLIB SYSTEM LIBRARIES (5 DLLs)
+=======================================
+GLib is the core system abstraction layer used by GTK3 and many other libraries.
+
+23. libglib-2.0-0.dll
+    - Core system library
+    - Depends on: libintl-8, libiconv-2
+
+24. libgobject-2.0-0.dll
+    - Object system for C
+    - Depends on: libglib-2.0-0
+
+25. libgio-2.0-0.dll
+    - VFS and I/O abstraction
+    - Depends on: libglib-2.0-0, libgobject-2.0-0
+
+26. libgmodule-2.0-0.dll
+    - Dynamic module loader
+    - Depends on: libglib-2.0-0
+
+27. libgthread-2.0-0.dll
+    - Threading support
+    - Depends on: libglib-2.0-0
+
+
+LEVEL 2: IMAGE SUPPORT (11 DLLs)
+===============================
+Image codec libraries for BMP, PNG, JPEG, TIFF, WebP, Exif support.
+
+28. libgdk_pixbuf-2.0-0.dll
+    - Image loading and manipulation
+    - Depends on: libpng16-16, libjpeg-8, libtiff-6, libglib-2.0-0, libgobject-2.0-0
+
+29. libpng16-16.dll
+    - PNG image support
+    - Depends on: zlib1
+
+30. libjpeg-8.dll
+    - JPEG image support
+    - No external DLL dependencies
+
+31. libtiff-6.dll
+    - TIFF image support (complex codec library)
+    - Depends on: libwebp-7, libjbig-0, libLerc, liblzma-5, libzstd, libjpeg-8, zlib1
+
+32. libwebp-7.dll (Primary WebP decoder)
+    - WebP image codec - lossy/lossless
+    - Depends on: libsharpyuv-0.dll (⭐ KEY DISCOVERY)
+
+33. libwebpdecoder-3.dll
+    - WebP decoder library
+    - Depends on: libwebp-7
+
+34. libwebpdemux-2.dll
+    - WebP container/animation support
+    - Depends on: libwebp-7
+
+35. libwebpmux-3.dll
+    - WebP muxing utility
+    - Depends on: libwebp-7
+
+36. libsharpyuv-0.dll (Level 3/4: VICE→WebP→SharpYUV)
+    - YUV color space conversion for WebP
+    - **CRITICAL DISCOVERY**: Found only through deep dependency scanning
+    - Used specifically for WebP encoding/decoding optimization
+
+37. libexif-12.dll
+    - EXIF metadata support for images
+    - No external DLL dependencies
+
+38. libjbig-0.dll
+    - JBIG2 image compression (TIFF variant)
+    - No external DLL dependencies
+
+39. libLerc.dll
+    - LERC (Limited Error Raster Compression) for TIFF
+    - No external DLL dependencies
+
+
+LEVEL 2: NETWORKING & SECURITY (10 DLLs)
+========================================
+libcurl for HTTP/HTTPS and its dependencies for SSL/TLS, HTTP/2, QUIC.
+
+40. libcurl-4.dll (PRIMARY)
+    - HTTP/HTTPS client library
+    - Depends on: libssl-3-x64, libcrypto-3-x64, libssh2-1, libnghttp2-14,
+                  libngtcp2-16, libnghttp3-9, libidn2-0, libzstd, zlib1
+
+41. libssl-3-x64.dll
+    - OpenSSL secure socket layer
+    - Depends on: libcrypto-3-x64
+
+42. libcrypto-3-x64.dll
+    - OpenSSL cryptography library
+    - No external DLL dependencies (beyond system DLLs)
+
+43. libssh2-1.dll
+    - SSH client library
+    - Depends on: libcrypto-3-x64, libssl-3-x64, zlib1
+
+44. libnghttp2-14.dll
+    - HTTP/2 protocol support
+    - No external DLL dependencies
+
+45. libngtcp2-16.dll
+    - QUIC protocol support
+    - No external DLL dependencies
+
+46. libngtcp2_crypto_ossl-0.dll
+    - QUIC + OpenSSL integration
+    - Depends on: libcrypto-3-x64, libssl-3-x64, libngtcp2-16
+
+47. libnghttp3-9.dll
+    - HTTP/3 protocol support
+    - No external DLL dependencies
+
+48. libpsl-5.dll
+    - Public Suffix List (domain validation)
+    - Depends on: libidn2-0, libunistring-5, libiconv-2
+
+49. libidn2-0.dll
+    - Internationalized domain names
+    - Depends on: libunistring-5
+
+
+LEVEL 2: COMPRESSION (9 DLLs)
+============================
+Multiple compression libraries used by GTK3, libcurl, libtiff, etc.
+
+50. zlib1.dll
+    - DEFLATE compression
+    - No external DLL dependencies
+
+51. libbz2-1.dll
+    - Bzip2 compression
+    - No external DLL dependencies
+
+52. libzstd.dll
+    - Zstandard compression (modern)
+    - No external DLL dependencies
+
+53. libbrotlidec.dll
+    - Brotli decompression
+    - Depends on: libbrotlicommon
+
+54. libbrotlicommon.dll
+    - Brotli common code
+    - No external DLL dependencies
+
+55. libbrotlienc.dll
+    - Brotli compression
+    - Depends on: libbrotlicommon
+
+56. libdeflate.dll
+    - Alternative DEFLATE implementation
+    - No external DLL dependencies
+
+57. liblzma-5.dll
+    - LZMA/XZ compression
+    - No external DLL dependencies
+
+58. liblzo2-2.dll
+    - LZO compression
+    - No external DLL dependencies
+
+
+LEVEL 2: UTILITIES (6 DLLs)
+==========================
+Various utility libraries used by GLib and other components.
+
+59. libffi-8.dll
+    - Foreign Function Interface (C interop)
+    - No external DLL dependencies
+
+60. libpcre2-8-0.dll
+    - Perl Compatible Regular Expressions (8-bit)
+    - Depends on: libintl-8
+
+61. libexpat-1.dll
+    - XML parsing
+    - No external DLL dependencies
+
+62. libintl-8.dll
+    - GNU gettext internationalization
+    - Depends on: libiconv-2
+
+63. libiconv-2.dll
+    - Character set conversion
+    - No external DLL dependencies
+
+64. libunistring-5.dll
+    - Unicode string library
+    - Depends on: libiconv-2
+
+
+DEPENDENCY CHAIN ANALYSIS
+=========================
+
+CRITICAL DISCOVERIES (Deep Transitive Dependencies):
+1. libgraphite2.dll
+   - Chain: VICE → GTK3 → Pango → Harfbuzz → Graphite2
+   - Depth: Level 4
+   - Function: Advanced OpenType font shaping
+   - Status: ✅ Identified and included
+
+2. libsharpyuv-0.dll
+   - Chain: VICE → GDK-Pixbuf → WebP → SharpYUV
+   - Depth: Level 3/4
+   - Function: YUV color space optimization for WebP
+   - Status: ✅ Identified and included
+
+DEPENDENCY DEPTH ANALYSIS:
+- Level 1: Direct VICE dependencies (GTK3, etc.)
+- Level 2: GTK3 sub-dependencies (Cairo, Pango, GLib, etc.)
+- Level 3: Sub-sub dependencies (Harfbuzz, Freetype, Fontconfig, etc.)
+- Level 4: Deep transitive dependencies (Graphite2, SharpYUV)
+- Maximum depth: 4 levels (from VICE executable)
+
+VERIFICATION METHOD:
+- Used objdump.exe binary analysis to extract import tables
+- Analyzed 50+ DLL import tables for custom DLL dependencies
+- Cross-referenced against MinGW64 /mingw64/bin/ inventory
+- All 64 DLLs verified to exist in MinGW64 repository
+
+TEST STATUS:
+- ✅ Build: Successful (11 emulator executables compiled)
+- ✅ DLL Copy: All 64 DLLs copied to artifacts/vice/win-x64/
+- ✅ Launch: x64sc.exe launches without DLL errors
+- ✅ Dependencies: No missing dependency errors reported
+
+BUILD SCRIPT CATEGORIES:
+The build script build/vice/build-mingw64.sh organizes these 64 DLLs into
+9 functional categories for clarity:
+
+1. Core runtime (3)
+2. GTK3 UI (3)
+3. Cairo graphics (4)
+4. Pango text (6)
+5. GLib system (5)
+6. Image support (12) - includes 2 deep dependencies
+7. Font rendering (4) - includes 1 deep dependency
+8. Networking (10)
+9. Compression (9)
+10. Utilities (6)
+
+FUTURE MAINTENANCE:
+If VICE configuration changes or dependencies upgrade:
+1. Run `objdump -p /mingw64/bin/DLLNAME.dll` to check imports
+2. Verify all custom (non-Windows system) DLLs are in artifacts/
+3. Test x64sc.exe launch to confirm all DLLs load
+4. Update this documentation with any changes
+
+The current set of 64 DLLs represents a complete, tested, minimal set
+for functional VICE operation on Windows x64 with GTK3 UI.

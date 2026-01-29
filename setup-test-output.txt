@@ -1,0 +1,110 @@
+Running in PowerShell 7.5.4
+
+Note: Some operations (like installing packages) require Administrator privileges.
+For full functionality, run this script with 'Run as Administrator'
+
+
+= * 80
+C64OS IDE - DEPENDENCY CHECK
+= * 80
+
+PowerShell Version: 
+7.5.4
+
+
+= * 80
+CHECKING CORE DEPENDENCIES
+= * 80
+
+[i] 
+Checking Git...
+[+] 
+git version 2.52.0.windows.1
+[!] 
+  git-svn not found (optional, for SVN integration)
+[i] 
+Checking .NET SDK...
+[+] 
+.NET SDK 10.0.102 installed
+
+= * 80
+CHECKING BUILD TOOLS
+= * 80
+
+[i] 
+Checking WSL 2...
+[-] 
+WSL 2 not found
+  Install with: wsl --install
+  Or manually: https://learn.microsoft.com/en-us/windows/wsl/install
+  (Requires Windows 10 19041+ or Windows 11)
+[!] 
+Skipping WSL build tools check (WSL not installed)
+[i] 
+Checking Subversion (SVN)...
+[!] 
+SVN not found (git-svn alternative available)
+  Install from: https://visualsvn.com/downloads/
+  Or use: winget install Apache.Subversion
+  Or use: choco install svn
+
+= * 80
+CHECKING IDE
+= * 80
+
+[i] 
+Checking Visual Studio or VS Code...
+[+] 
+Visual Studio Code found
+
+= * 80
+CHECKING CONFIGURATION
+= * 80
+
+[i] 
+Checking Git configuration...
+[+] 
+Git user: sharpninja (ninja@thesharp.ninja)
+
+= * 80
+CHECKING PROJECT STRUCTURE
+= * 80
+
+[i] 
+Checking project structure...
+    [-] src\C64OS.IDE.App\C64OS.IDE.App.csproj
+    [-] src\C64OS.IDE.Core\C64OS.IDE.Core.csproj
+    [-] build\Build.cs
+    [-] build\vice
+    [-] .github\workflows
+[-] 
+Project structure incomplete
+
+= * 80
+CHECKING OPTIONAL
+= * 80
+
+[i] 
+VS Code extensions recommended:
+  code --install-extension ms-dotnettools.csharp
+  code --install-extension ms-vscode-remote.remote-wsl
+  code --install-extension ms-vscode.powershell
+
+= * 80
+DEPENDENCY CHECK SUMMARY
+= * 80
+
+Results: 
+4/8
+ passed
+Failed: 
+4
+
+[-] 
+Some dependencies are missing. Install them using the instructions above.
+
+Common installation methods:
+  - winget (Windows Package Manager): winget install [package]
+  - chocolatey: choco install [package]
+  - Direct download from official websites
+
