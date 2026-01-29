@@ -2,7 +2,7 @@
 #
 # setup-git-svn.sh
 #
-# Setup git-svn mirror and pull VICE source code from SourceForge SVN
+# Setup git mirror and pull VICE source code from GitHub VICE Team mirror
 # Applies patches after successful checkout
 #
 # Usage: ./setup-git-svn.sh [--clean] [--verbose]
@@ -15,7 +15,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 VICE_GIT_DIR="$PROJECT_ROOT/third_party/vice"
 VICE_DIR="$VICE_GIT_DIR/vice"
 PATCH_DIR="$SCRIPT_DIR"
-SVN_REPO="https://svn.code.sf.net/p/vice-emu/code/trunk"
+SVN_REPO="https://github.com/VICE-Team/svn-mirror.git"
 GIT_SVN_AUTHOR="vice-emu=VICE Emulator Team <info@vice-emu.org>"
 
 # Options
@@ -57,19 +57,20 @@ show_help() {
 Usage: ./setup-git-svn.sh [OPTIONS]
 
 Options:
-    --clean     Remove existing git-svn mirror and start fresh
+    --clean     Remove existing git mirror and start fresh
     --verbose   Show detailed output
     --help      Show this help message
 
 Description:
-    This script sets up a git-svn mirror of the VICE emulator source code
-    from SourceForge and applies necessary patches for C64OS IDE builds.
+    This script sets up a git mirror of the VICE emulator source code
+    from the official GitHub VICE Team mirror and applies necessary 
+    patches for C64OS IDE builds.
 
-    If the mirror already exists, it will be updated using 'git svn fetch'.
+    If the mirror already exists, it will be updated using 'git fetch'.
     If --clean is specified, the existing mirror will be removed and recreated.
 
 Examples:
-    # Initial setup (will take several minutes)
+    # Initial setup (will take a minute or so)
     ./setup-git-svn.sh
 
     # Update existing mirror
@@ -103,7 +104,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-log_info "VICE git-svn Setup Script"
+log_info "VICE git mirror Setup Script"
 log_info "Project Root: $PROJECT_ROOT"
 
 # Check if git is available
@@ -114,39 +115,6 @@ fi
 
 GIT_VERSION=$(git --version)
 log_info "Found: $GIT_VERSION"
-
-# Check if git-svn is available
-if ! git svn --version &> /dev/null; then
-    log_warning "git-svn is NOT available on this system"
-    log_info "Checking for cached VICE source..."
-    
-    if [ -d "$VICE_DIR" ]; then
-        log_success "Using cached VICE source at: $VICE_DIR"
-        log_info "Applying patches to cached source..."
-        
-        PATCH_SCRIPT="$PATCH_DIR/apply_vice_patches.sh"
-        if [ -f "$PATCH_SCRIPT" ]; then
-            if chmod +x "$PATCH_SCRIPT" && "$PATCH_SCRIPT" $([ "$VERBOSE" -eq 1 ] && echo "--verbose"); then
-                log_success "Patches applied successfully to cached source"
-                log_success "VICE setup complete (using cache)"
-                exit 0
-            else
-                log_error "Failed to apply patches to cached source"
-                exit 1
-            fi
-        else
-            log_error "Patch script not found: $PATCH_SCRIPT"
-            exit 1
-        fi
-    else
-        log_error "git-svn is not available and no cached VICE source found"
-        log_error "Install git-svn using your package manager:"
-        log_error "  Ubuntu/Debian: sudo apt-get install git-svn"
-        log_error "  macOS: brew install git-svn"
-        log_error "  Fedora: sudo dnf install perl-Git-SVN"
-        exit 1
-    fi
-fi
 
 # Create third_party directory if needed
 if [ ! -d "$PROJECT_ROOT/third_party" ]; then
@@ -163,48 +131,43 @@ if [ "$CLEAN" -eq 1 ]; then
     fi
 fi
 
-# Initialize or update git-svn mirror
+# Initialize or update git mirror
 if [ ! -d "$VICE_GIT_DIR" ]; then
-    log_info "Initializing git-svn mirror from: $SVN_REPO"
-    log_info "This may take several minutes on first run..."
-
+    log_info "Initializing git mirror from: $SVN_REPO"
+    log_info "This may take a few minutes on first run..."
+    
     cd "$PROJECT_ROOT/third_party"
-
-    # Clone from SVN with git-svn
-    # Note: Only pull trunk to avoid excessive download
+    
+    # Clone from GitHub mirror
     START_TIME=$(date +%s)
-
-    if git svn clone -s \
-        -A "$GIT_SVN_AUTHOR" \
-        -q \
-        "$SVN_REPO" \
-        vice; then
-
+    
+    if git clone -q "$SVN_REPO" vice; then
+        
         END_TIME=$(date +%s)
         DURATION=$((END_TIME - START_TIME))
-
-        log_success "Git-SVN mirror initialized successfully"
+        
+        log_success "Git mirror cloned successfully"
         log_info "Initial clone took: $((DURATION / 60)) minutes $((DURATION % 60)) seconds"
     else
-        log_error "Failed to initialize git-svn mirror"
+        log_error "Failed to initialize git mirror"
         exit 1
     fi
 else
-    log_info "Git-SVN mirror already exists at: $VICE_GIT_DIR"
-    log_info "Updating from SVN..."
-
+    log_info "Git mirror already exists at: $VICE_GIT_DIR"
+    log_info "Updating from remote..."
+    
     cd "$VICE_GIT_DIR"
-
+    
     START_TIME=$(date +%s)
-
-    if git svn fetch -q; then
+    
+    if git fetch -q; then
         END_TIME=$(date +%s)
         DURATION=$((END_TIME - START_TIME))
-
-        log_success "Git-SVN update completed"
+        
+        log_success "Git mirror updated"
         log_info "Fetch took: $DURATION seconds"
     else
-        log_error "Failed to update git-svn mirror"
+        log_error "Failed to update git mirror"
         exit 1
     fi
 fi
@@ -233,7 +196,7 @@ else
     exit 1
 fi
 
-log_success "VICE git-svn setup complete!"
+log_success "VICE git mirror setup complete!"
 log_info "Source code: $VICE_DIR"
 log_info "Next steps: Run the build script"
 log_info "  Windows: .\\build.cmd BuildVice --Platform Windows"
