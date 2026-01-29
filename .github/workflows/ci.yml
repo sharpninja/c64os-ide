@@ -20,10 +20,54 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Cache VICE source code
+        uses: actions/cache@v3
+        id: cache-vice-source
+        with:
+          path: third_party/vice
+          key: vice-source-${{ hashFiles('.gitmodules', '.github/workflows/ci.yml') }}
+          restore-keys: |
+            vice-source-
+
+      - name: Cache .NET NuGet packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/Directory.Packages.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '9.0.x'
+
+      - name: Cache NUKE build directory
+        uses: actions/cache@v3
+        with:
+          path: .nuke
+          key: nuke-build-${{ runner.os }}-${{ hashFiles('build/**/*.cs', 'global.json') }}
+          restore-keys: |
+            nuke-build-${{ runner.os }}-
+
+      - name: Cache MinGW64 packages
+        uses: actions/cache@v3
+        id: cache-mingw64
+        with:
+          path: |
+            C:\msys64\mingw64
+            C:\msys64\var\cache\pacman
+          key: mingw64-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: |
+            mingw64-${{ runner.os }}-
+
+      - name: Cache VICE build directory
+        uses: actions/cache@v3
+        with:
+          path: third_party/vice/vice/build
+          key: vice-build-windows-${{ runner.os }}-${{ hashFiles('third_party/vice/**', '.github/workflows/ci.yml') }}
+          restore-keys: |
+            vice-build-windows-${{ runner.os }}-
 
       - name: Enable WSL2
         shell: powershell
@@ -44,6 +88,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
+          cache: true
           install: |
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-autoconf
@@ -107,6 +152,15 @@ jobs:
           Write-Host "✓ Windows build completed successfully"
           Write-Host "Artifacts: artifacts/vice/win-x64"
 
+      - name: Cache Windows build artifacts
+        if: success()
+        uses: actions/cache@v3
+        with:
+          path: artifacts/vice/win-x64
+          key: vice-artifacts-windows-${{ github.sha }}
+          restore-keys: |
+            vice-artifacts-windows-
+
   build-linux:
     runs-on: ubuntu-latest
     name: Build Linux (NUKE + Autotools)
@@ -116,10 +170,52 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Cache VICE source code
+        uses: actions/cache@v3
+        id: cache-vice-source
+        with:
+          path: third_party/vice
+          key: vice-source-${{ hashFiles('.gitmodules', '.github/workflows/ci.yml') }}
+          restore-keys: |
+            vice-source-
+
+      - name: Cache .NET NuGet packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', '**/Directory.Packages.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '9.0.x'
+
+      - name: Cache NUKE build directory
+        uses: actions/cache@v3
+        with:
+          path: .nuke
+          key: nuke-build-${{ runner.os }}-${{ hashFiles('build/**/*.cs', 'global.json') }}
+          restore-keys: |
+            nuke-build-${{ runner.os }}-
+
+      - name: Cache Linux build dependencies
+        uses: actions/cache@v3
+        id: cache-linux-deps
+        with:
+          path: /usr/local/apt-cache
+          key: apt-cache-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: |
+            apt-cache-${{ runner.os }}-
+
+      - name: Cache VICE build directory
+        uses: actions/cache@v3
+        with:
+          path: third_party/vice/vice/build
+          key: vice-build-linux-${{ runner.os }}-${{ hashFiles('third_party/vice/**', '.github/workflows/ci.yml') }}
+          restore-keys: |
+            vice-build-linux-${{ runner.os }}-
 
       - name: Install Linux build dependencies
         run: |
@@ -171,3 +267,12 @@ jobs:
         run: |
           echo "✓ Linux build completed successfully"
           echo "Artifacts: artifacts/vice/linux-x64"
+
+      - name: Cache Linux build artifacts
+        if: success()
+        uses: actions/cache@v3
+        with:
+          path: artifacts/vice/linux-x64
+          key: vice-artifacts-linux-${{ github.sha }}
+          restore-keys: |
+            vice-artifacts-linux-
