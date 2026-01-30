@@ -183,42 +183,85 @@ function Main {
     }
     Write-Success "VICE directory found: $viceDir"
 
+    # Check current VICE commit
+    Push-Location $viceDir
+    try {
+        $currentCommit = git rev-parse HEAD 2>$null
+        if ($currentCommit) {
+            Write-Info "Current VICE commit: $currentCommit"
+        }
+    } catch {
+        Write-Warning "Could not determine current VICE commit"
+    } finally {
+        Pop-Location
+    }
+
     # Check if patch files exist
-    Test-PatchFile (Join-Path $patchDir "geninfocontrib_h.sh.patch")
-    Test-PatchFile (Join-Path $patchDir "Makefile.patch")
+    $geninfoPatch = Join-Path $patchDir "geninfocontrib_h.sh.patch"
+    $makefilePatch = Join-Path $patchDir "Makefile.patch"
+    
+    if (Test-Path $geninfoPatch) {
+        $geninfoPatchContent = Get-Content $geninfoPatch -Raw
+    }
+    if (Test-Path $makefilePatch) {
+        $makefilePatchContent = Get-Content $makefilePatch -Raw
+    }
+
+    # Check if patches are obsolete (marked with OBSOLETE in first line)
+    $geninfoPatchObsolete = $geninfoPatchContent -match "^# OBSOLETE"
+    $makefilePatchObsolete = $makefilePatchContent -match "^# OBSOLETE"
+
+    if ($geninfoPatchObsolete -and $makefilePatchObsolete) {
+        Write-Info "All patches are marked as OBSOLETE (fixes applied upstream)"
+        Write-Success "No patches need to be applied - VICE source is ready to build"
+        Write-Info ""
+        Write-Info "Current VICE version includes:"
+        Write-Info "  - File existence checks in geninfocontrib_h.sh"
+        Write-Info "  - Graceful error handling in Makefile.am"
+        Write-Info ""
+        Write-Info "Pinned to commit: 5ca7ce898bca1a3696dbc9e444207026eabd58d5"
+        return
+    }
+
     Write-Success "All patch files found"
     Write-Host ""
 
-    # Apply patches if not test-only
+    # Apply patches if not test-only and not obsolete
     if (-not $TestOnly) {
-        Apply-Patch `
-            -PatchFile (Join-Path $patchDir "geninfocontrib_h.sh.patch") `
-            -TargetDir $viceDir `
-            -Description "geninfocontrib_h.sh patch"
-        Write-Host ""
+        if (-not $geninfoPatchObsolete) {
+            Apply-Patch `
+                -PatchFile $geninfoPatch `
+                -TargetDir $viceDir `
+                -Description "geninfocontrib_h.sh patch"
+            Write-Host ""
+        }
 
-        Apply-Patch `
-            -PatchFile (Join-Path $patchDir "Makefile.patch") `
-            -TargetDir $viceDir `
-            -Description "Makefile patch"
-        Write-Host ""
+        if (-not $makefilePatchObsolete) {
+            Apply-Patch `
+                -PatchFile $makefilePatch `
+                -TargetDir $viceDir `
+                -Description "Makefile patch"
+            Write-Host ""
+        }
     }
 
-    # Run tests
-    $testPassed = Test-Patches
+    # Run tests only if patches were applied
+    if (-not ($geninfoPatchObsolete -and $makefilePatchObsolete)) {
+        $testPassed = Test-Patches
 
-    # Summary
-    Write-Host ""
-    Write-Info "Summary"
-    Write-Info "========"
-    if ($DryRun) {
-        Write-Info "Dry run completed - no changes were made"
-    } elseif ($TestOnly) {
-        Write-Info "Test-only mode - verification completed"
-    } else {
-        if ($testPassed) {
-            Write-Success "Patches applied successfully!"
-            Write-Info "The VICE build should now work correctly."
+        # Summary
+        Write-Host ""
+        Write-Info "Summary"
+        Write-Info "========"
+        if ($DryRun) {
+            Write-Info "Dry run completed - no changes were made"
+        } elseif ($TestOnly) {
+            Write-Info "Test-only mode - verification completed"
+        } else {
+            if ($testPassed) {
+                Write-Success "Patches applied successfully!"
+                Write-Info "The VICE build should now work correctly."
+            }
         }
     }
 }

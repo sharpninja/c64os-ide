@@ -1,19 +1,20 @@
---- a/src/Makefile
-+++ b/src/Makefile
-@@ -2354,13 +2354,15 @@ VICE_VERSION = @VICE_VERSION@
- infocontrib.h: $(srcdir)/buildtools/geninfocontrib_h.sh $(top_srcdir)/doc/vice.texi $(srcdir)/buildtools/infocontrib.sed
- 	@echo "generating infocontrib.h"
- 	@if [ "`file --mime-encoding $(srcdir)/buildtools/geninfocontrib_h.sh`" != "$(srcdir)/buildtools/geninfocontrib_h.sh: iso-8859-1" ]; then \
- 		echo "ERROR: geninfocontrib_h.sh contains content that is not valid iso-8859-x" >&2; \
- 		false; \
- 	fi
- 	@$(SHELL) $(srcdir)/buildtools/geninfocontrib_h.sh infocontrib.h <$(top_srcdir)/doc/vice.texi `grep "VICEDATE_YEAR " $(top_srcdir)/src/vicedate.h | cut -d " " -f 3` | LC_ALL=C sed -f $(srcdir)/buildtools/infocontrib.sed >infocontrib.h
--	@if [ "`file --mime-encoding infocontrib.h`" != "infocontrib.h: iso-8859-1" ]; then \
--		echo "ERROR: generated infocontrib.h contains content that is not valid iso-8859-x" >&2; \
-+	@encoding=`file --mime-encoding infocontrib.h | cut -d: -f2 | tr -d ' '`; \
-+	if [ "$$encoding" != "iso-8859-1" ] && [ "$$encoding" != "us-ascii" ]; then \
-+		echo "ERROR: generated infocontrib.h contains content that is not valid iso-8859-x (found: $$encoding)" >&2; \
- 		false; \
- 	fi
-
- # we need to replace \ and space by "regular" characters, else things break on some shells
+# OBSOLETE PATCH - Superseded by upstream solution in commit 5ca7ce898bca1a3696dbc9e444207026eabd58d5
+#
+# This patch modified src/Makefile to handle encoding validation more gracefully.
+#
+# The VICE Team has replaced this entire section with a better solution in src/Makefile.am:
+# - Now uses error handling with `|| { fallback }` to provide a minimal infocontrib.h on failure
+# - Eliminates the need for complex encoding validation
+# - More robust and maintainable approach
+#
+# Current upstream code (as of commit 5ca7ce898b):
+# @$(SHELL) $(srcdir)/buildtools/geninfocontrib_h.sh infocontrib.h <$(top_srcdir)/doc/vice.texi [...] 2>/dev/null || { \
+#     echo "WARNING: Could not generate infocontrib.h, using minimal version"; \
+#     rm -f infocontrib.h; \
+#     printf '#ifndef VICE_INFOCONTRIB_H\n[...]\n' > infocontrib.h; \
+# }
+#
+# Historical patch content (no longer applicable):
+# --- a/src/Makefile
+# +++ b/src/Makefile
+# ... (patch omitted, no longer needed)

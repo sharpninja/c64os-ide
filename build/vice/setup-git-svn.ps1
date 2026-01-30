@@ -93,20 +93,20 @@ Examples:
 # Handle git submodule if applicable
 if ($isSubmodule) {
     Write-Info "VICE is configured as a git submodule"
-    
+
     # Check if submodule is already populated
     if ((Test-Path $viceDir) -and (Get-ChildItem $viceDir -ErrorAction SilentlyContinue).Count -gt 0) {
         Write-Info "Submodule already populated (likely by GitHub Actions checkout)"
         Write-Success "VICE submodule content already available"
     } else {
         Write-Info "Submodule not populated, initializing now..."
-        
+
         Push-Location $projectRoot
         try {
             $ErrorActionPreference = "Continue"
             $status = git submodule status third_party/vice 2>&1
             $ErrorActionPreference = "Stop"
-            
+
             if ($status -match "^-") {
                 Write-Info "Submodule not initialized, initializing now..."
                 git submodule update --init --recursive third_party/vice

@@ -116,61 +116,107 @@ main() {
     fi
     log_success "VICE directory found: $VICE_DIR"
 
-    # Check if patch files exist
-    if [ ! -f "$SCRIPT_DIR/geninfocontrib_h.sh.patch" ]; then
-        log_error "Patch file not found: $SCRIPT_DIR/geninfocontrib_h.sh.patch"
+    # Check current VICE commit
+    if cd "$VICE_DIR" 2>/dev/null; then
+        CURRENT_COMMIT=$(git rev-parse HEAD 2>/dev/null)
+        if [ -n "$CURRENT_COMMIT" ]; then
+            log_info "Current VICE commit: $CURRENT_COMMIT"
+        fi
+        cd - >/dev/null 2>&1
+    fi
+
+    # Check if patch files exist and if they're obsolete
+    GENINFO_PATCH="$SCRIPT_DIR/geninfocontrib_h.sh.patch"
+    MAKEFILE_PATCH="$SCRIPT_DIR/Makefile.patch"
+    
+    if [ ! -f "$GENINFO_PATCH" ]; then
+        log_error "Patch file not found: $GENINFO_PATCH"
         exit 1
     fi
 
-    if [ ! -f "$SCRIPT_DIR/Makefile.patch" ]; then
-        log_error "Patch file not found: $SCRIPT_DIR/Makefile.patch"
+    if [ ! -f "$MAKEFILE_PATCH" ]; then
+        log_error "Patch file not found: $MAKEFILE_PATCH"
         exit 1
     fi
+
+    # Check if patches are obsolete
+    GENINFO_OBSOLETE=0
+    MAKEFILE_OBSOLETE=0
+    
+    if head -n 1 "$GENINFO_PATCH" | grep -q "^# OBSOLETE"; then
+        GENINFO_OBSOLETE=1
+    fi
+    
+    if head -n 1 "$MAKEFILE_PATCH" | grep -q "^# OBSOLETE"; then
+        MAKEFILE_OBSOLETE=1
+    fi
+
+    if [ "$GENINFO_OBSOLETE" -eq 1 ] && [ "$MAKEFILE_OBSOLETE" -eq 1 ]; then
+        log_info "All patches are marked as OBSOLETE (fixes applied upstream)"
+        log_success "No patches need to be applied - VICE source is ready to build"
+        echo ""
+        log_info "Current VICE version includes:"
+        log_info "  - File existence checks in geninfocontrib_h.sh"
+        log_info "  - Graceful error handling in Makefile.am"
+        echo ""
+        log_info "Pinned to commit: 5ca7ce898bca1a3696dbc9e444207026eabd58d5"
+        return 0
+    fi
+
     log_success "All patch files found"
     echo ""
 
     # Apply patches
     if [ "$TEST_ONLY" -eq 0 ]; then
-        apply_patches
+        apply_patches "$GENINFO_OBSOLETE" "$MAKEFILE_OBSOLETE"
     fi
 
-    # Run tests
-    run_tests
+    # Run tests only if patches were applied
+    if [ "$GENINFO_OBSOLETE" -eq 0 ] || [ "$MAKEFILE_OBSOLETE" -eq 0 ]; then
+        run_tests
+    fi
 }
 
 apply_patches() {
+    local GENINFO_OBSOLETE=$1
+    local MAKEFILE_OBSOLETE=$2
+    
     log_info "Applying patches..."
     echo ""
 
     cd "$VICE_DIR"
 
-    # Apply geninfocontrib_h.sh patch
-    log_info "Applying geninfocontrib_h.sh patch..."
-    if [ "$DRY_RUN" -eq 1 ]; then
-        log_verbose "DRY RUN: Would apply patch"
-        patch -p1 --dry-run < "$SCRIPT_DIR/geninfocontrib_h.sh.patch" 2>&1 | grep -E "^(patching|Hunk)" || true
-    else
-        if patch -p1 < "$SCRIPT_DIR/geninfocontrib_h.sh.patch" >/dev/null 2>&1; then
-            log_success "geninfocontrib_h.sh patch applied successfully"
+    # Apply geninfocontrib_h.sh patch if not obsolete
+    if [ "$GENINFO_OBSOLETE" -eq 0 ]; then
+        log_info "Applying geninfocontrib_h.sh patch..."
+        if [ "$DRY_RUN" -eq 1 ]; then
+            log_verbose "DRY RUN: Would apply patch"
+            patch -p1 --dry-run < "$SCRIPT_DIR/geninfocontrib_h.sh.patch" 2>&1 | grep -E "^(patching|Hunk)" || true
         else
-            log_warning "geninfocontrib_h.sh patch may already be applied or have minor issues"
+            if patch -p1 < "$SCRIPT_DIR/geninfocontrib_h.sh.patch" >/dev/null 2>&1; then
+                log_success "geninfocontrib_h.sh patch applied successfully"
+            else
+                log_warning "geninfocontrib_h.sh patch may already be applied or have minor issues"
+            fi
         fi
+        echo ""
     fi
-    echo ""
 
-    # Apply Makefile patch
-    log_info "Applying Makefile patch..."
-    if [ "$DRY_RUN" -eq 1 ]; then
-        log_verbose "DRY RUN: Would apply patch"
-        patch -p1 --dry-run < "$SCRIPT_DIR/Makefile.patch" 2>&1 | grep -E "^(patching|Hunk)" || true
-    else
-        if patch -p1 < "$SCRIPT_DIR/Makefile.patch" >/dev/null 2>&1; then
-            log_success "Makefile patch applied successfully"
+    # Apply Makefile patch if not obsolete
+    if [ "$MAKEFILE_OBSOLETE" -eq 0 ]; then
+        log_info "Applying Makefile patch..."
+        if [ "$DRY_RUN" -eq 1 ]; then
+            log_verbose "DRY RUN: Would apply patch"
+            patch -p1 --dry-run < "$SCRIPT_DIR/Makefile.patch" 2>&1 | grep -E "^(patching|Hunk)" || true
         else
-            log_warning "Makefile patch may already be applied or have minor issues"
+            if patch -p1 < "$SCRIPT_DIR/Makefile.patch" >/dev/null 2>&1; then
+                log_success "Makefile patch applied successfully"
+            else
+                log_warning "Makefile patch may already be applied or have minor issues"
+            fi
         fi
+        echo ""
     fi
-    echo ""
 }
 
 run_tests() {
